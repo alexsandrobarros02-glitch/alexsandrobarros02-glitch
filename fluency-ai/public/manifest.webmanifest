@@ -1,0 +1,9 @@
+{
+  "name": "Fluency — professor de idiomas com IA",
+  "short_name": "Fluency",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f7f7fb",
+  "theme_color": "#4f46e5",
+  "lang": "pt-BR"
+}
