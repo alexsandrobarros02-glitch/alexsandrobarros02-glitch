@@ -1,0 +1,16 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700&family=Inter:wght@400;500;600&display=swap');
+@import "tailwindcss";
+
+/* AX99 palette, same values as the Portal Hub */
+@theme {
+  --color-gold: #C9A84C;
+  --color-gold-light: #E8D48B;
+  --color-gold-dark: #A07C2A;
+  --color-obsidian: #0D0D0D;
+  --color-obsidian-light: #1A1A1A;
+  --color-warm: #F5F0E1;
+  --font-jakarta: 'Plus Jakarta Sans', sans-serif;
+  --font-inter: 'Inter', sans-serif;
+}
+
+body { background: var(--color-obsidian); }
