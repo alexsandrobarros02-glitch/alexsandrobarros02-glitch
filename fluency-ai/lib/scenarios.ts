@@ -66,6 +66,18 @@ export const SCENARIOS: Scenario[] = [
   },
 ];
 
+// Conversa de nivelamento: não aparece na lista de situações e não conta no limite grátis.
+export const PLACEMENT_SCENARIO: Scenario = {
+  id: "nivelamento",
+  title: "Teste de nível",
+  emoji: "🎯",
+  description: "Uma conversa curta para descobrir o seu nível.",
+  roleplay:
+    "You are a friendly examiner running a short placement interview. Start with very simple questions (name, city) and make each next question a bit harder (past experiences, opinions, hypotheticals). If the learner struggles, go back to an easier question.",
+};
+
+export const PLACEMENT_TURNS = 6;
+
 export function getScenario(id: string): Scenario | undefined {
-  return SCENARIOS.find((s) => s.id === id);
+  return id === PLACEMENT_SCENARIO.id ? PLACEMENT_SCENARIO : SCENARIOS.find((s) => s.id === id);
 }

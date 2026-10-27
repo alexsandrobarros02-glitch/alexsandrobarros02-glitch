@@ -39,7 +39,10 @@ const LEVEL_GUIDE: Record<Level, string> = {
 
 // O prompt de sistema depende só de idioma, nível e cenário,
 // então é idêntico em todas as mensagens da mesma conversa e pode ser cacheado.
-export function buildSystemPrompt(language: Language, level: Level, scenario: Scenario): string {
+export function buildSystemPrompt(language: Language, level: Level, scenario: Scenario, focus = ""): string {
+  const focusSection = focus
+    ? `\n\n## Learner's recent mistakes\nNaturally create chances for the learner to practice these again (never list them):\n${focus}`
+    : "";
   return `You are Fluency, a warm and encouraging conversation tutor for Brazilian learners of ${language.nativeName} (${language.name}).
 
 ## Role-play
@@ -59,5 +62,21 @@ ${LEVEL_GUIDE[level]}
 ## New words
 List up to 3 useful words or expressions from YOUR reply that a ${level} learner may not know. Use an empty list if none.
 
-The first user message may be "[START]": then open the scene with a greeting and a question, with no feedback (has_errors false, empty corrected/natural/errors).`;
+The first user message may be "[START]": then open the scene with a greeting and a question, with no feedback (has_errors false, empty corrected/natural/errors).${focusSection}`;
+}
+
+export const PlacementResultSchema = z.object({
+  level: z.enum(["A1", "A2", "B1", "B2", "C1"]),
+  summary_pt: z.string().describe("2-3 sentences in Brazilian Portuguese on how the learner did."),
+  strengths_pt: z.array(z.string()).describe("Up to 3 strengths, in Brazilian Portuguese."),
+  focus_pt: z.array(z.string()).describe("Up to 3 things to work on next, in Brazilian Portuguese."),
+});
+
+export type PlacementResult = z.infer<typeof PlacementResultSchema>;
+
+export function buildPlacementPrompt(language: Language): string {
+  return `You assess the ${language.nativeName} speaking level of a Brazilian learner on the CEFR scale (A1-C1) from a short placement interview transcript.
+Judge only the learner's messages: grammar accuracy, vocabulary range, sentence complexity and how well they handled harder questions.
+Their messages may come from speech-to-text, so ignore punctuation, capitalization and missing accents. Messages in Portuguese mean the learner could not answer in ${language.nativeName}.
+When in doubt between two levels, choose the lower one.`;
 }

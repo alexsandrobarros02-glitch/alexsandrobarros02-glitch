@@ -10,7 +10,32 @@ export default function Home() {
           Converse em voz alta com um professor de IA em situações reais e receba a correção na hora,
           explicada em português.
         </p>
+        <Link href="/app" className="btn">Começar grátis</Link>
       </section>
+
+      <h2 className="section-title">Como funciona</h2>
+      <div className="grid">
+        <div className="card">
+          <div className="emoji">🎯</div>
+          <div className="title">Descubra seu nível</div>
+          <div className="sub">Uma conversa de 2 minutos define se você é A1, B1, C1…</div>
+        </div>
+        <div className="card">
+          <div className="emoji">🎤</div>
+          <div className="title">Fale de verdade</div>
+          <div className="sub">Entrevista, aeroporto, restaurante, médico e mais 4 situações reais.</div>
+        </div>
+        <div className="card">
+          <div className="emoji">✅</div>
+          <div className="title">Correção em português</div>
+          <div className="sub">Veja o que errou, como um nativo diria e por quê.</div>
+        </div>
+        <div className="card">
+          <div className="emoji">🧠</div>
+          <div className="title">Treino dos seus erros</div>
+          <div className="sub">O professor volta nos seus erros e as palavras novas viram flashcards.</div>
+        </div>
+      </div>
 
       <h2 className="section-title">Escolha o idioma</h2>
       <div className="grid">

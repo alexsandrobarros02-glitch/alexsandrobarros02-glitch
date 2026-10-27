@@ -155,3 +155,36 @@ button.card:hover, a.card:hover { border-color: var(--primary); }
 .notice { background: var(--warn-soft); border-radius: var(--radius); padding: 12px 14px; font-size: 0.9rem; }
 .error { color: #dc2626; font-size: 0.9rem; }
 .typing { color: var(--muted); font-style: italic; }
+
+/* Telas de conta, painel e assinatura */
+.narrow { max-width: 480px; }
+.form { display: flex; flex-direction: column; gap: 12px; margin-top: 16px; }
+.form input {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+}
+.code-input { font-size: 1.6rem; letter-spacing: 8px; text-align: center; }
+.sub { color: var(--muted); font-size: 0.9rem; }
+.stats { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 16px; }
+.mission { display: flex; flex-direction: column; gap: 8px; }
+.mission .done { color: var(--muted); text-decoration: line-through; }
+.upgrade { margin-top: 16px; border-color: var(--primary); background: var(--primary-soft); }
+.badge {
+  display: inline-block; margin-top: 6px; font-size: 0.75rem; font-weight: 600;
+  background: var(--success-soft); color: var(--success); border-radius: 999px; padding: 2px 8px;
+}
+.qr { display: block; width: 240px; height: 240px; margin: 16px auto; background: #fff; border-radius: var(--radius); }
+.copy-paste {
+  width: 100%; border: 1px solid var(--border); border-radius: var(--radius); padding: 10px;
+  background: var(--surface); color: var(--text); font: 0.8rem monospace; margin-bottom: 12px; resize: none;
+}
+.flashcard { width: 100%; min-height: 200px; text-align: center; display: flex; flex-direction: column; justify-content: center; gap: 8px; }
+.word-big { font-size: 2rem; font-weight: 700; }
+.actions-row { display: flex; gap: 8px; justify-content: center; margin-top: 12px; flex-wrap: wrap; }
+.list { display: flex; flex-direction: column; gap: 8px; }
+.tools { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 8px; }
+.result-list { margin: 4px 0 0; padding-left: 18px; }

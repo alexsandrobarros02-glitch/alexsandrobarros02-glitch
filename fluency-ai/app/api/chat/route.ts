@@ -1,20 +1,20 @@
-import Anthropic from "@anthropic-ai/sdk";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { z } from "zod";
 import { getLanguage, isLevel } from "@/lib/languages";
-import { getScenario } from "@/lib/scenarios";
+import { PLACEMENT_SCENARIO, PLACEMENT_TURNS, getScenario } from "@/lib/scenarios";
+import { currentUser, isPro } from "@/lib/server/auth";
+import { TUTOR_MODEL, claude, claudeErrorResponse, unauthorized } from "@/lib/server/claude";
+import { db } from "@/lib/server/db";
+import { recordTurn } from "@/lib/server/learning";
+import { PRO_MESSAGES_PER_DAY, messagesPerConversation, messagesToday } from "@/lib/server/plan";
 import { buildSystemPrompt, TutorReplySchema } from "@/lib/tutor";
-
-const client = new Anthropic();
-const MODEL = process.env.TUTOR_MODEL || "claude-haiku-5-5";
 
 // Mantém o custo por mensagem previsível: só as últimas trocas vão para a IA.
 const MAX_HISTORY = 20;
+const START = "[START]";
 
 const RequestSchema = z.object({
-  language: z.string(),
-  level: z.string(),
-  scenario: z.string(),
+  conversationId: z.string().uuid(),
   messages: z
     .array(
       z.object({
@@ -27,15 +27,43 @@ const RequestSchema = z.object({
 });
 
 export async function POST(req: Request) {
+  const user = await currentUser();
+  if (!user) return unauthorized();
+
   const parsed = RequestSchema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) {
     return Response.json({ error: "Requisição inválida." }, { status: 400 });
   }
-  const { level, messages } = parsed.data;
-  const language = getLanguage(parsed.data.language);
-  const scenario = getScenario(parsed.data.scenario);
+  const { conversationId, messages } = parsed.data;
+
+  const client = await db();
+  const conversation = (
+    await client.execute({
+      sql: "SELECT language, level, scenario, focus, user_messages, opened FROM conversations WHERE id = ? AND user_id = ?",
+      args: [conversationId, user.id],
+    })
+  ).rows[0];
+  if (!conversation) return Response.json({ error: "Conversa não encontrada." }, { status: 404 });
+
+  const language = getLanguage(conversation.language as string);
+  const scenario = getScenario(conversation.scenario as string);
+  const level = conversation.level as string;
   if (!language || !scenario || !isLevel(level)) {
-    return Response.json({ error: "Idioma, nível ou cenário inválido." }, { status: 400 });
+    return Response.json({ error: "Conversa inválida." }, { status: 400 });
+  }
+
+  const opening = messages.length === 1 && messages[0].text === START;
+  if (opening && Number(conversation.opened)) {
+    return Response.json({ error: "Esta conversa já começou." }, { status: 409 });
+  }
+  if (!opening) {
+    const limit = scenario.id === PLACEMENT_SCENARIO.id ? PLACEMENT_TURNS : messagesPerConversation(user);
+    if (Number(conversation.user_messages) >= limit) {
+      return Response.json({ error: "Esta conversa chegou ao fim. Comece uma nova!", ended: true }, { status: 429 });
+    }
+    if (isPro(user) && (await messagesToday(user)) >= PRO_MESSAGES_PER_DAY) {
+      return Response.json({ error: "Você atingiu o limite de prática de hoje. Volte amanhã!" }, { status: 429 });
+    }
   }
 
   // A conversa precisa começar com o aluno; descarta respostas soltas no início do recorte.
@@ -46,36 +74,34 @@ export async function POST(req: Request) {
   }
 
   try {
-    const response = await client.messages.parse({
-      model: MODEL,
+    const response = await claude.messages.parse({
+      model: TUTOR_MODEL,
       max_tokens: 4000,
       cache_control: { type: "ephemeral" },
-      system: buildSystemPrompt(language, level, scenario),
+      system: buildSystemPrompt(language, level, scenario, conversation.focus as string),
       messages: history.map((m) => ({ role: m.role, content: m.text })),
       output_config: { effort: "low", format: zodOutputFormat(TutorReplySchema) },
     });
 
-    if (response.stop_reason === "refusal" || !response.parsed_output) {
+    const reply = response.parsed_output;
+    if (response.stop_reason === "refusal" || !reply) {
       return Response.json(
         { error: "O professor não conseguiu responder a essa mensagem. Tente reformular." },
         { status: 502 },
       );
     }
-    return Response.json(response.parsed_output);
+
+    if (opening) {
+      await client.execute({ sql: "UPDATE conversations SET opened = 1 WHERE id = ?", args: [conversationId] });
+    } else {
+      await client.execute({
+        sql: "UPDATE conversations SET user_messages = user_messages + 1 WHERE id = ?",
+        args: [conversationId],
+      });
+      await recordTurn(user.id, language.code, reply);
+    }
+    return Response.json(reply);
   } catch (error) {
-    if (error instanceof Anthropic.RateLimitError) {
-      return Response.json({ error: "Muitos alunos ao mesmo tempo. Tente de novo em instantes." }, { status: 429 });
-    }
-    if (error instanceof Anthropic.AuthenticationError) {
-      console.error("ANTHROPIC_API_KEY ausente ou inválida");
-      return Response.json({ error: "Serviço não configurado." }, { status: 500 });
-    }
-    if (error instanceof Anthropic.APIError) {
-      console.error(`Erro da API ${error.status}:`, error.message);
-      return Response.json({ error: "Erro ao falar com o professor. Tente de novo." }, { status: 502 });
-    }
-    // Ex.: nenhuma credencial configurada no servidor.
-    console.error(error);
-    return Response.json({ error: "Serviço não configurado." }, { status: 500 });
+    return claudeErrorResponse(error);
   }
 }
