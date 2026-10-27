@@ -188,3 +188,6 @@ button.card:hover, a.card:hover { border-color: var(--primary); }
 .list { display: flex; flex-direction: column; gap: 8px; }
 .tools { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 8px; }
 .result-list { margin: 4px 0 0; padding-left: 18px; }
+.result-card { text-align: center; margin-top: 16px; }
+.result-card ul { text-align: left; }
+.level-big { font-size: 4.5rem; font-weight: 800; line-height: 1; color: var(--primary); margin: 8px 0; }

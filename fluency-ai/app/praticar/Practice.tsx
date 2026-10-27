@@ -25,7 +25,7 @@ export default function Practice({ language }: { language: Language }) {
   const [error, setError] = useState("");
   const [needsUpgrade, setNeedsUpgrade] = useState(false);
   const [ended, setEnded] = useState(false);
-  const [placementResult, setPlacementResult] = useState<PlacementResult | null>(null);
+  const [placementResult, setPlacementResult] = useState<(PlacementResult & { shareId?: string }) | null>(null);
   const [autoSpeak, setAutoSpeak] = useState(true);
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -101,7 +101,7 @@ export default function Practice({ language }: { language: Language }) {
     setLoading(true);
     setError("");
     try {
-      const result = await api<PlacementResult>("/api/placement", {
+      const result = await api<PlacementResult & { shareId: string }>("/api/placement", {
         conversationId,
         messages: history.map((e) => ({ role: e.role, text: e.text })),
       });
@@ -224,7 +224,12 @@ export default function Practice({ language }: { language: Language }) {
                 <ul className="result-list">{placementResult.focus_pt.map((s) => <li key={s}>{s}</li>)}</ul>
               </>
             )}
-            <p><button className="btn" onClick={leave}>Escolher uma situação</button></p>
+            <div className="actions-row">
+              {placementResult.shareId && (
+                <Link href={`/resultado/${placementResult.shareId}`} className="btn ghost">Compartilhar resultado</Link>
+              )}
+              <button className="btn" onClick={leave}>Escolher uma situação</button>
+            </div>
           </div>
         )}
         {error && <div className="error">{error}</div>}

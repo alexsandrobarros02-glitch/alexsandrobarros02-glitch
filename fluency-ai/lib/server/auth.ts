@@ -2,6 +2,7 @@ import "server-only";
 import { createHmac, randomBytes, randomInt, randomUUID, timingSafeEqual } from "node:crypto";
 import { cookies } from "next/headers";
 import { db } from "./db";
+import { emailLayout, sendEmail } from "./email";
 
 const SESSION_COOKIE = "fluency_session";
 const SESSION_DAYS = 60;
@@ -26,6 +27,17 @@ function secret(): string {
 
 function hash(value: string): string {
   return createHmac("sha256", secret()).update(value).digest("hex");
+}
+
+// Assinatura para links sem login (ex.: cancelar lembretes por e-mail).
+export function sign(value: string): string {
+  return hash(`link:${value}`).slice(0, 32);
+}
+
+export function verifySignature(value: string, signature: string): boolean {
+  const expected = Buffer.from(sign(value));
+  const given = Buffer.from(signature);
+  return expected.length === given.length && timingSafeEqual(expected, given);
 }
 
 export function normalizeEmail(email: string): string {
@@ -59,23 +71,17 @@ export async function requestLoginCode(email: string): Promise<RequestCodeResult
 }
 
 async function sendCodeEmail(email: string, code: string) {
-  const apiKey = process.env.RESEND_API_KEY;
-  if (!apiKey) {
-    if (process.env.NODE_ENV === "production") throw new Error("RESEND_API_KEY não configurado");
+  if (!process.env.RESEND_API_KEY && process.env.NODE_ENV !== "production") {
     console.log(`[dev] Código de acesso para ${email}: ${code}`);
     return;
   }
-  const res = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-    body: JSON.stringify({
-      from: process.env.EMAIL_FROM || "Fluency <onboarding@resend.dev>",
-      to: [email],
-      subject: `Seu código de acesso: ${code}`,
-      html: `<p>Seu código para entrar no Fluency é:</p><p style="font-size:28px;font-weight:bold;letter-spacing:4px">${code}</p><p>Ele vale por ${CODE_MINUTES} minutos.</p>`,
-    }),
-  });
-  if (!res.ok) throw new Error(`Falha ao enviar e-mail: ${res.status} ${await res.text()}`);
+  await sendEmail(
+    email,
+    `Seu código de acesso: ${code}`,
+    emailLayout(
+      `<p>Seu código para entrar no Fluency é:</p><p style="font-size:28px;font-weight:bold;letter-spacing:4px">${code}</p><p>Ele vale por ${CODE_MINUTES} minutos.</p>`,
+    ),
+  );
 }
 
 export async function verifyLoginCode(email: string, code: string): Promise<User | null> {

@@ -6,6 +6,7 @@ import { currentUser } from "@/lib/server/auth";
 import { TUTOR_MODEL, claude, claudeErrorResponse, unauthorized } from "@/lib/server/claude";
 import { db } from "@/lib/server/db";
 import { saveLevel } from "@/lib/server/learning";
+import { saveResult } from "@/lib/server/results";
 import { buildPlacementPrompt, PlacementResultSchema } from "@/lib/tutor";
 
 const MIN_TURNS = 3;
@@ -57,7 +58,8 @@ export async function POST(req: Request) {
       return Response.json({ error: "Não foi possível avaliar agora. Tente de novo." }, { status: 502 });
     }
     await saveLevel(user.id, language.code, result.level, result.summary_pt);
-    return Response.json(result);
+    const shareId = await saveResult(user.id, language.code, result);
+    return Response.json({ ...result, shareId });
   } catch (error) {
     return claudeErrorResponse(error);
   }

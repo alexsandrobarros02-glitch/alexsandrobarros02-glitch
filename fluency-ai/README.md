@@ -4,7 +4,7 @@ App web (PWA) para brasileiros praticarem conversação em **8 idiomas**: inglê
 italiano, francês, alemão, polonês, romeno e grego. O aluno fala (ou digita) em situações reais e
 recebe correção na hora, explicada em português.
 
-## O que já funciona (v0.2)
+## O que já funciona (v0.3)
 - **Conta sem senha:** login com código de 6 dígitos enviado por e-mail.
 - **8 situações** (conversa livre, entrevista, aeroporto, restaurante, hotel, médico, reunião, compras),
   níveis A1–C1, conversa por **voz** (do navegador, sem custo por uso) ou texto.
@@ -16,6 +16,11 @@ recebe correção na hora, explicada em português.
 - **Painel com missão diária** (1 conversa + revisão) e sequência de dias.
 - **Planos no servidor:** grátis com 3 conversas/semana (30 mensagens cada); Pro com teto de uso justo
   de 150 mensagens/dia.
+- **Resultado compartilhável:** o teste de nível gera uma página pública com imagem de prévia
+  para WhatsApp e redes sociais, e um convite para a pessoa fazer o próprio teste.
+- **Lembretes por e-mail** (todo dia às 18h de Brasília): sequência de dias em risco e plano Pro
+  vencendo em 3 dias. Sem repetição e com link para cancelar.
+- **Instalável no celular** com ícone próprio.
 - **Pix via Asaas:** R$ 6,99 (31 dias) ou R$ 36,99 (366 dias), QR code e copia e cola, liberação
   automática por webhook ou consulta de status. Pagar de novo soma dias ao plano.
 
@@ -36,14 +41,21 @@ modo simulação.
    `ASAAS_API_KEY` e `ASAAS_API_URL` (testar antes no sandbox).
 5. **Webhook do Asaas:** URL `https://SEU-DOMINIO/api/billing/webhook`, eventos de cobrança, e o
    token de autenticação igual a `ASAAS_WEBHOOK_TOKEN`.
-6. `AUTH_SECRET` com um valor aleatório longo.
+6. `AUTH_SECRET` e `CRON_SECRET` com valores aleatórios longos, e `APP_URL` com o endereço do app.
+   A rotina de lembretes já está agendada em `vercel.json`.
 
 ## Custo por conversa
 As conversas usam o **Claude Haiku 5.5** (`TUTOR_MODEL`) com esforço baixo, cache do prompt de
 sistema e histórico limitado às últimas 20 mensagens. A voz é do navegador, então o custo por aluno
 fica só no texto. Meça o custo real com os primeiros usuários antes de divulgar em escala.
 
+## Testes
+```bash
+npm run test:e2e
+```
+Sobe o app com banco novo e uma IA falsa (sem gastar créditos) e testa no navegador: login,
+teste de nível, compartilhamento, limite grátis, erros, flashcards, Pix simulado, ícones e
+lembretes. Para usar um Chromium já instalado: `PW_CHROMIUM=/caminho/do/chrome`.
+
 ## Próximas ideias
 - Pix Automático (renovação mensal sem gerar novo QR code), quando confirmado no Asaas.
-- Lembrete por e-mail antes do plano vencer e lembrete da sequência de dias.
-- Ícones do app e página de compartilhamento do resultado do teste de nível.

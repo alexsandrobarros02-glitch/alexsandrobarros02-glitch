@@ -1,3 +1,4 @@
+import type Anthropic from "@anthropic-ai/sdk";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { z } from "zod";
 import { getLanguage, isLevel } from "@/lib/languages";
@@ -73,13 +74,24 @@ export async function POST(req: Request) {
     return Response.json({ error: "A última mensagem deve ser do aluno." }, { status: 400 });
   }
 
+  const turns: Anthropic.MessageParam[] = history.map((m) => ({ role: m.role, content: m.text }));
+  // Última resposta do teste de nível: o professor encerra em vez de fazer outra pergunta.
+  const lastPlacementTurn =
+    scenario.id === PLACEMENT_SCENARIO.id && Number(conversation.user_messages) + 1 >= PLACEMENT_TURNS;
+  if (lastPlacementTurn) {
+    turns.push({
+      role: "system",
+      content: "This was the learner's last answer. Thank them warmly and close the interview. Do not ask another question.",
+    });
+  }
+
   try {
     const response = await claude.messages.parse({
       model: TUTOR_MODEL,
       max_tokens: 4000,
       cache_control: { type: "ephemeral" },
       system: buildSystemPrompt(language, level, scenario, conversation.focus as string),
-      messages: history.map((m) => ({ role: m.role, content: m.text })),
+      messages: turns,
       output_config: { effort: "low", format: zodOutputFormat(TutorReplySchema) },
     });
 

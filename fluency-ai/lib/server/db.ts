@@ -86,16 +86,49 @@ const SCHEMA = [
     created_at INTEGER NOT NULL,
     paid_at INTEGER
   )`,
+  `CREATE TABLE IF NOT EXISTS reminders_sent (
+    user_id TEXT NOT NULL,
+    kind TEXT NOT NULL,
+    ref TEXT NOT NULL,
+    sent_at INTEGER NOT NULL,
+    PRIMARY KEY (user_id, kind, ref)
+  )`,
+  `CREATE TABLE IF NOT EXISTS placement_results (
+    id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    language TEXT NOT NULL,
+    level TEXT NOT NULL,
+    summary TEXT NOT NULL,
+    strengths TEXT NOT NULL,
+    focus TEXT NOT NULL,
+    created_at INTEGER NOT NULL
+  )`,
   `CREATE TABLE IF NOT EXISTS webhook_events (
     id TEXT PRIMARY KEY,
     received_at INTEGER NOT NULL
   )`,
 ];
 
+// Colunas adicionadas depois da primeira versão: CREATE TABLE IF NOT EXISTS não altera
+// tabelas que já existem, então elas entram com ALTER TABLE se ainda faltarem.
+const COLUMNS: [table: string, column: string, definition: string][] = [
+  ["users", "email_opt_out", "INTEGER NOT NULL DEFAULT 0"],
+];
+
+async function migrate() {
+  await client.batch(SCHEMA, "write");
+  for (const [table, column, definition] of COLUMNS) {
+    const info = await client.execute(`PRAGMA table_info(${table})`);
+    if (!info.rows.some((r) => r.name === column)) {
+      await client.execute(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+    }
+  }
+}
+
 let ready: Promise<void> | null = null;
 
 export function db(): Promise<Client> {
-  ready ??= client.batch(SCHEMA, "write").then(
+  ready ??= migrate().then(
     () => undefined,
     (error) => {
       ready = null; // tenta de novo na próxima requisição
